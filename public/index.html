@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brightloop Software — Subscription & Recurring Billing Management</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Chart.js for Executive Finance Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col">
+
+  <!-- TOP BAR: Persona Switcher & Benchmark Pill (Crucial for Hackathon Evaluation) -->
+  <div class="bg-slate-900 text-white text-xs px-4 py-2 flex flex-wrap items-center justify-between border-b border-slate-800 z-50">
+    <div class="flex items-center space-x-3">
+      <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-500 text-white">
+        <i class="fa-solid fa-bolt mr-1"></i> Odoo Hackathon Demo
+      </span>
+      <span class="text-slate-300 hidden md:inline">Brightloop Software Subscription Engine</span>
+    </div>
+
+    <!-- Quick Role Switcher -->
+    <div class="flex items-center space-x-2 my-1 md:my-0">
+      <span class="text-slate-400 font-medium">Quick Persona Switch:</span>
+      <button onclick="window.switchRole('admin@brightloop.com')" class="px-2 py-1 rounded bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white transition font-medium flex items-center">
+        <i class="fa-solid fa-shield-halved mr-1 text-indigo-400"></i> Admin
+      </button>
+      <button onclick="window.switchRole('staff@brightloop.com')" class="px-2 py-1 rounded bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white transition font-medium flex items-center">
+        <i class="fa-solid fa-headset mr-1 text-emerald-400"></i> Staff / Sales
+      </button>
+      <button onclick="window.switchRole('customer@brightloop.com')" class="px-2 py-1 rounded bg-slate-800 hover:bg-amber-600 text-slate-200 hover:text-white transition font-medium flex items-center">
+        <i class="fa-solid fa-store mr-1 text-amber-400"></i> Customer Portal
+      </button>
+    </div>
+
+    <!-- Performance & Scale Test Pill -->
+    <div class="flex items-center space-x-3">
+      <div id="perf-pill" class="hidden md:flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+        <span>Query: <strong id="query-time" class="font-mono">14.2 ms</strong> (&lt;2s SLA met)</span>
+      </div>
+      <button onclick="window.openScaleModal()" class="px-2.5 py-1 rounded bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 border border-indigo-700 font-medium text-xs transition">
+        <i class="fa-solid fa-database mr-1"></i> Scale Test (1k-5k Subs)
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN NAVIGATION HEADER -->
+  <header class="glass-header sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        <!-- Brand / Logo -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+            <i class="fa-solid fa-repeat text-lg"></i>
+          </div>
+          <div>
+            <div class="text-xl font-bold tracking-tight text-slate-900 flex items-center">
+              Brightloop <span class="text-indigo-600 font-extrabold ml-1">SubSync</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-medium">Unified Subscription & Recurring Billing</p>
+          </div>
+        </div>
+
+        <!-- Role-Specific Dynamic Navigation Links -->
+        <nav id="main-nav-links" class="hidden lg:flex items-center space-x-1 font-medium text-sm text-slate-600">
+          <!-- Injected via JavaScript based on user role -->
+        </nav>
+
+        <!-- User Controls / Auth state -->
+        <div class="flex items-center space-x-3">
+          <div id="auth-user-badge" class="flex items-center space-x-2 bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 text-xs">
+            <!-- Injected by JavaScript -->
+          </div>
+          <button id="auth-action-btn" onclick="window.handleAuthAction()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition">
+            Sign In
+          </button>
+        </div>
+      </div>
+
+      <!-- Secondary Sub-Nav for Mobile -->
+      <div id="mobile-nav-links" class="lg:hidden flex space-x-2 overflow-x-auto py-2 border-t border-slate-200 text-xs">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- View Slot: Managed by app.js router -->
+    <div id="view-container">
+      <div class="text-center py-20">
+        <i class="fa-solid fa-circle-notch fa-spin text-indigo-600 text-3xl mb-3"></i>
+        <p class="text-slate-500 font-medium">Loading Brightloop Subscription System...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-2">
+        <span class="font-bold text-slate-700">Brightloop Software</span>
+        <span>&bull;</span>
+        <span>Built for Odoo Subscription Management Challenge</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span><i class="fa-solid fa-check-circle text-emerald-500 mr-1"></i> Zero Double-Billing Guarantee</span>
+        <span><i class="fa-solid fa-check-circle text-emerald-500 mr-1"></i> Auto-Calculated Taxes & Discounts</span>
+        <span><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Sub-2s SLA Benchmark</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- 1. AUTH / SIGN IN / SIGN UP MODAL -->
+  <div id="auth-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+      <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <h3 id="auth-modal-title" class="text-lg font-bold text-slate-900">Sign In to Brightloop</h3>
+        <button onclick="window.closeModal('auth-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="p-6 space-y-4">
+        <!-- Auth Tabs -->
+        <div class="flex border-b border-slate-200 text-sm font-semibold">
+          <button id="tab-login" onclick="window.showAuthTab('login')" class="flex-1 pb-3 text-indigo-600 border-b-2 border-indigo-600">Sign In</button>
+          <button id="tab-register" onclick="window.showAuthTab('register')" class="flex-1 pb-3 text-slate-500 hover:text-slate-700">Customer Sign Up</button>
+          <button id="tab-forgot" onclick="window.showAuthTab('forgot')" class="flex-1 pb-3 text-slate-500 hover:text-slate-700">Reset Password</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form id="form-login" onsubmit="window.submitLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+            <input type="email" id="login-email" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="name@company.com">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+            <input type="password" id="login-password" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="••••••••">
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow transition">
+            Sign In
+          </button>
+        </form>
+
+        <!-- REGISTER FORM (With strict password rules: >8 chars, upper, lower, special) -->
+        <form id="form-register" onsubmit="window.submitRegister(event)" class="space-y-3 hidden">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Your Full Name</label>
+            <input type="text" id="reg-name" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Elena Rostova">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Business Email (Unique)</label>
+            <input type="email" id="reg-email" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="elena@cornerstore.com">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Company / Organization</label>
+            <input type="text" id="reg-company" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Corner Store LLC">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+            <input type="password" id="reg-password" oninput="window.validatePwInputs(this.value)" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. SecurePass@2026">
+            
+            <!-- Live Password Policy Checklist -->
+            <div class="mt-2 text-[11px] space-y-1 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <div id="rule-len" class="text-slate-500 flex items-center"><i class="fa-solid fa-circle-xmark mr-1.5 text-slate-400"></i> More than 8 characters long</div>
+              <div id="rule-upper" class="text-slate-500 flex items-center"><i class="fa-solid fa-circle-xmark mr-1.5 text-slate-400"></i> At least one uppercase letter (A-Z)</div>
+              <div id="rule-lower" class="text-slate-500 flex items-center"><i class="fa-solid fa-circle-xmark mr-1.5 text-slate-400"></i> At least one lowercase letter (a-z)</div>
+              <div id="rule-special" class="text-slate-500 flex items-center"><i class="fa-solid fa-circle-xmark mr-1.5 text-slate-400"></i> At least one special character (!@#$%^&*...)</div>
+            </div>
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow transition">
+            Create Customer Account
+          </button>
+        </form>
+
+        <!-- FORGOT PASSWORD FORM -->
+        <form id="form-forgot" onsubmit="window.submitForgotPassword(event)" class="space-y-4 hidden">
+          <p class="text-xs text-slate-600">Enter your registered email. A password reset link will be generated for your account.</p>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Registered Email</label>
+            <input type="email" id="forgot-email" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="name@company.com">
+          </div>
+          <div id="reset-link-preview" class="hidden p-3 bg-indigo-50 rounded-lg border border-indigo-200 text-xs text-indigo-900 space-y-2">
+            <p class="font-semibold"><i class="fa-solid fa-envelope mr-1 text-indigo-600"></i> Email Dispatched Simulation:</p>
+            <div id="reset-link-url" class="font-mono text-[11px] break-all bg-white p-2 rounded border border-indigo-200 select-all"></div>
+            <button type="button" onclick="window.useResetLink()" class="px-3 py-1 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700">Open Reset Screen</button>
+          </div>
+          <button type="submit" id="btn-forgot-submit" class="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow transition">
+            Send Reset Link
+          </button>
+        </form>
+
+        <!-- RESET NEW PASSWORD SUB-VIEW -->
+        <form id="form-do-reset" onsubmit="window.submitDoReset(event)" class="space-y-3 hidden">
+          <input type="hidden" id="reset-token-val">
+          <p class="text-xs text-slate-600">Enter your new password below:</p>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">New Password</label>
+            <input type="password" id="reset-new-password" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. NewPass@2026">
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow transition">
+            Update Password & Sign In
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. PRINTABLE INVOICE MODAL -->
+  <div id="invoice-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 no-print">
+        <div class="flex items-center space-x-2">
+          <span class="text-sm font-bold text-slate-800">Invoice Viewer</span>
+          <span id="inv-modal-badge" class="px-2 py-0.5 rounded text-xs font-semibold"></span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="window.printInvoice()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-medium flex items-center">
+            <i class="fa-solid fa-print mr-1.5"></i> Print / PDF
+          </button>
+          <button onclick="window.closeModal('invoice-modal')" class="text-slate-400 hover:text-slate-600 px-2 py-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+      </div>
+      <div id="printable-invoice-content" class="p-8 overflow-y-auto flex-1 bg-white">
+        <!-- Rendered dynamically by invoiceView component -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. RUN BILLING DAY MODAL -->
+  <div id="billing-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center">
+          <i class="fa-solid fa-calendar-check text-indigo-600 mr-2"></i> Automated Billing Run
+        </h3>
+        <button onclick="window.closeModal('billing-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        This automated engine queries all Active subscriptions due on or before the selected billing day. It compiles customer details, product lines, taxes, and automatically applies qualifying discounts with a strict <strong>duplicate prevention guarantee</strong>.
+      </p>
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Target Billing Date</label>
+        <input type="date" id="billing-run-date" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+      </div>
+      <div id="billing-results-box" class="hidden p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
+        <!-- Filled on execution -->
+      </div>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="window.closeModal('billing-modal')" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+        <button onclick="window.executeBillingRunAction()" id="btn-run-billing-exec" class="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow">
+          Execute Billing Cycle Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. RECORD PAYMENT MODAL -->
+  <div id="payment-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center">
+          <i class="fa-solid fa-receipt text-emerald-600 mr-2"></i> Record Payment
+        </h3>
+        <button onclick="window.closeModal('payment-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="window.submitPayment(event)" class="space-y-3">
+        <input type="hidden" id="pay-invoice-id">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Invoice</label>
+          <div id="pay-invoice-info" class="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-xs font-medium text-slate-800"></div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Method</label>
+          <select id="pay-method" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="credit_card">Credit Card (Stripe/Online)</option>
+            <option value="bank_transfer">Bank Wire / ACH</option>
+            <option value="paypal">PayPal</option>
+            <option value="cash">Cash</option>
+            <option value="check">Company Check</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Amount ($)</label>
+          <input type="number" step="0.01" id="pay-amount" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Date</label>
+          <input type="date" id="pay-date" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Transaction Note</label>
+          <input type="text" id="pay-note" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. Wired to Silicon Valley Bank, Ref #78992">
+        </div>
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="window.closeModal('payment-modal')" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow">
+            Confirm Payment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5. SCALE TEST BENCHMARK MODAL -->
+  <div id="scale-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center">
+          <i class="fa-solid fa-gauge-high text-indigo-600 mr-2"></i> Performance & Scale Benchmark
+        </h3>
+        <button onclick="window.closeModal('scale-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        <strong>Problem Statement Benchmark:</strong> <em>"With thousands of subscriptions on the books, every page should still respond in under two seconds."</em>
+      </p>
+      <p class="text-xs text-slate-500">
+        You can generate 1,000 to 5,000 subscriptions and query the entire financial ledger in a single click to inspect live execution timings.
+      </p>
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Number of Subscriptions to Seed</label>
+        <select id="scale-count" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          <option value="1000">1,000 Subscriptions (Fast Benchmark)</option>
+          <option value="2500">2,500 Subscriptions (Medium Enterprise)</option>
+          <option value="5000">5,000 Subscriptions (Heavy Enterprise)</option>
+        </select>
+      </div>
+      <div id="scale-results-box" class="hidden p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs space-y-1">
+        <!-- Result metrics -->
+      </div>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="window.closeModal('scale-modal')" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Close</button>
+        <button onclick="window.runScaleBenchmark()" id="btn-scale-exec" class="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow">
+          Generate & Run Benchmark
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. ADD STAFF MODAL (Admin Only) -->
+  <div id="staff-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center">
+          <i class="fa-solid fa-user-plus text-indigo-600 mr-2"></i> Add Staff Member
+        </h3>
+        <button onclick="window.closeModal('staff-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-600">
+        <em>"Only the admin can add a new member of staff."</em> Staff members have access to day-to-day quotes, subscriptions, billing, and payments.
+      </p>
+      <form onsubmit="window.submitCreateStaff(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Staff Member Name</label>
+          <input type="text" id="staff-name" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Jordan Lee">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Staff Email</label>
+          <input type="email" id="staff-email" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="jordan@brightloop.com">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Initial Password</label>
+          <input type="password" id="staff-password" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. BrightStaff@2026">
+          <p class="text-[11px] text-slate-500 mt-1">&gt; 8 chars, uppercase, lowercase, special char</p>
+        </div>
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="window.closeModal('staff-modal')" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow">
+            Create Staff Account
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7. NEW SUBSCRIPTION / FROM TEMPLATE MODAL -->
+  <div id="new-sub-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center">
+          <i class="fa-solid fa-file-signature text-indigo-600 mr-2"></i> Instantiate from Template
+        </h3>
+        <button onclick="window.closeModal('new-sub-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-600">
+        <em>"Instead of building it from scratch, they start from a quotation template that already has the right plan and product lines..."</em>
+      </p>
+      <form onsubmit="window.submitInstantiateTemplate(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Select Quotation Template</label>
+          <select id="inst-template-id" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Target Customer</label>
+          <select id="inst-customer-id" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Start Date</label>
+          <input type="date" id="inst-start-date" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Terms</label>
+          <select id="inst-terms" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="Net 15">Net 15 Days</option>
+            <option value="Net 30">Net 30 Days</option>
+            <option value="Immediate">Immediate / Due on Receipt</option>
+          </select>
+        </div>
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="window.closeModal('new-sub-modal')" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow">
+            Generate Quotation
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 8. APPLY DISCOUNT CODE MODAL -->
+  <div id="apply-discount-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center">
+          <i class="fa-solid fa-percent text-indigo-600 mr-2"></i> Apply Discount Code
+        </h3>
+        <button onclick="window.closeModal('apply-discount-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-600">
+        <em>"Once it applies, it should appear on the next invoice on its own, without anyone having to remember it..."</em>
+      </p>
+      <form onsubmit="window.submitApplyDiscount(event)" class="space-y-3">
+        <input type="hidden" id="disc-sub-id">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Discount Code</label>
+          <input type="text" id="disc-code-input" required class="w-full px-3 py-2 text-sm uppercase font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. SEATBOOST15, WELCOME50">
+        </div>
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="window.closeModal('apply-discount-modal')" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow">
+            Attach to Subscription
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 9. NEW PRODUCT WITH VARIANTS MODAL -->
+  <div id="new-product-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center">
+          <i class="fa-solid fa-box-open text-indigo-600 mr-2"></i> Create Product & Variants
+        </h3>
+        <button onclick="window.closeModal('new-product-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="window.submitCreateProduct(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Product Name</label>
+          <input type="text" id="prod-name" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. Brightloop Analytics Engine">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Type</label>
+            <select id="prod-type" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="software">Software</option>
+              <option value="service">Service</option>
+              <option value="consumable">Consumable</option>
+              <option value="addon">Add-on</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Sales Price ($)</label>
+            <input type="number" step="0.01" id="prod-price" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="150.00">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Cost Price ($)</label>
+          <input type="number" step="0.01" id="prod-cost" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="40.00">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Description / Notes</label>
+          <input type="text" id="prod-notes" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Optional internal notes">
+        </div>
+        
+        <!-- Variant definition -->
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-slate-700">Add Variant (e.g. Odoo brand +$60)</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" id="prod-var-name" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg" placeholder="Variant Name (e.g. Odoo Brand)">
+            <input type="number" step="0.01" id="prod-var-adj" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg" placeholder="Price Adj (e.g. 60.00)">
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="window.closeModal('new-product-modal')" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow">
+            Save Product
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 10. NEW PLAN MODAL -->
+  <div id="new-plan-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center">
+          <i class="fa-solid fa-tags text-indigo-600 mr-2"></i> Create Subscription Plan
+        </h3>
+        <button onclick="window.closeModal('new-plan-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="window.submitCreatePlan(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Plan Name</label>
+          <input type="text" id="plan-name-input" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. Growth Pro Tier">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Billing Frequency</label>
+            <select id="plan-freq-input" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly" selected>Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Price ($)</label>
+            <input type="number" step="0.01" id="plan-price-input" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="199.00">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Minimum Quantity</label>
+          <input type="number" id="plan-minqty-input" value="1" min="1" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
+          <span class="font-bold text-slate-700 block">Plan Lifecycle Permissions:</span>
+          <label class="flex items-center space-x-2"><input type="checkbox" id="plan-autoclose"> <span>Auto-close on expiry date</span></label>
+          <label class="flex items-center space-x-2"><input type="checkbox" id="plan-closeearly" checked> <span>Can be closed early by customer</span></label>
+          <label class="flex items-center space-x-2"><input type="checkbox" id="plan-canpause" checked> <span>Can be paused & resumed</span></label>
+          <label class="flex items-center space-x-2"><input type="checkbox" id="plan-canrenew" checked> <span>Can be renewed</span></label>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="window.closeModal('new-plan-modal')" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow">
+            Save Plan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 11. NEW DISCOUNT RULE MODAL (Admin Only) -->
+  <div id="new-discount-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center">
+          <i class="fa-solid fa-percent text-indigo-600 mr-2"></i> Create Discount Rule
+        </h3>
+        <button onclick="window.closeModal('new-discount-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="window.submitCreateDiscount(event)" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Discount Code</label>
+            <input type="text" id="disc-new-code" required class="w-full px-3 py-2 text-sm uppercase font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="SUMMER25">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Rule Name</label>
+            <input type="text" id="disc-new-name" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Summer Promotion">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Type</label>
+            <select id="disc-new-type" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="percentage">Percentage (%)</option>
+              <option value="fixed">Fixed Amount ($)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Value (% or $)</label>
+            <input type="number" step="0.01" id="disc-new-value" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="15">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Min Purchase ($)</label>
+            <input type="number" step="0.01" id="disc-new-minpurchase" value="0" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Min Seats / Qty</label>
+            <input type="number" id="disc-new-minqty" value="0" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Scope</label>
+            <select id="disc-new-scope" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="subscription">Whole Subscription</option>
+              <option value="product">Specific Product</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Max Usages (0 = Unlimited)</label>
+            <input type="number" id="disc-new-maxuses" value="100" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="window.closeModal('new-discount-modal')" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow">
+            Create Discount Rule
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 12. NEW TAX RULE MODAL (Admin Only) -->
+  <div id="new-tax-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center">
+          <i class="fa-solid fa-receipt text-indigo-600 mr-2"></i> Add Tax Rule
+        </h3>
+        <button onclick="window.closeModal('new-tax-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="window.submitCreateTax(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Rule Name</label>
+          <input type="text" id="tax-new-name" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. State Sales Tax (7.5%)">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Rate Percentage (%)</label>
+          <input type="number" step="0.01" id="tax-new-rate" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="7.5">
+        </div>
+        <div class="pt-1">
+          <label class="flex items-center space-x-2 text-xs text-slate-700">
+            <input type="checkbox" id="tax-new-default">
+            <span>Set as system default tax rate</span>
+          </label>
+        </div>
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="window.closeModal('new-tax-modal')" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow">
+            Save Tax Rule
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container"></div>
+
+  <!-- APPLICATION JAVASCRIPT -->
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
