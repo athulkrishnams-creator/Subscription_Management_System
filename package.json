@@ -1,0 +1,29 @@
+{
+  "name": "brightloop-subscription-management",
+  "version": "1.0.0",
+  "description": "Brightloop Subscription Management System for Odoo Hackathon",
+  "main": "server/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.js",
+    "seed": "node server/seedService.js",
+    "dev": "node --watch server/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/athulkrishnams-creator/Subscription_Management_System.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/athulkrishnams-creator/Subscription_Management_System/issues"
+  },
+  "homepage": "https://github.com/athulkrishnams-creator/Subscription_Management_System#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3"
+  }
+}
